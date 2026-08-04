@@ -22,10 +22,18 @@ exports.AppModule = AppModule = __decorate([
             config_1.ConfigModule.forRoot(),
             typeorm_1.TypeOrmModule.forRootAsync({
                 useFactory: () => {
-                    const isProd = process.env.NODE_ENV === 'production' || !!process.env.DB_HOST?.includes('supabase');
+                    if (process.env.DATABASE_URL) {
+                        return {
+                            type: 'postgres',
+                            url: process.env.DATABASE_URL,
+                            autoLoadEntities: true,
+                            synchronize: process.env.TYPEORM_SYNC === 'true',
+                            ssl: { rejectUnauthorized: false },
+                        };
+                    }
+                    const isRemote = process.env.NODE_ENV === 'production' || process.env.DB_HOST !== 'localhost';
                     return {
                         type: 'postgres',
-                        url: process.env.DATABASE_URL,
                         host: process.env.DB_HOST || 'localhost',
                         port: parseInt(process.env.DB_PORT || '5432', 10),
                         username: process.env.DB_USERNAME || 'cirta',
@@ -33,12 +41,7 @@ exports.AppModule = AppModule = __decorate([
                         database: process.env.DB_DATABASE || 'cirta',
                         autoLoadEntities: true,
                         synchronize: process.env.TYPEORM_SYNC === 'true',
-                        ssl: isProd
-                            ? {
-                                rejectUnauthorized: false,
-                                servername: process.env.DB_HOST,
-                            }
-                            : false,
+                        ssl: isRemote ? { rejectUnauthorized: false } : false,
                     };
                 },
             }),

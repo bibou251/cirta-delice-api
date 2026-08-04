@@ -10,10 +10,18 @@ import { OrdersModule } from './orders/orders.module';
     ConfigModule.forRoot(),
     TypeOrmModule.forRootAsync({
       useFactory: () => {
-        const isProd = process.env.NODE_ENV === 'production' || !!process.env.DB_HOST?.includes('supabase');
+        if (process.env.DATABASE_URL) {
+          return {
+            type: 'postgres',
+            url: process.env.DATABASE_URL,
+            autoLoadEntities: true,
+            synchronize: process.env.TYPEORM_SYNC === 'true',
+            ssl: { rejectUnauthorized: false },
+          };
+        }
+        const isRemote = process.env.NODE_ENV === 'production' || process.env.DB_HOST !== 'localhost';
         return {
           type: 'postgres',
-          url: process.env.DATABASE_URL,
           host: process.env.DB_HOST || 'localhost',
           port: parseInt(process.env.DB_PORT || '5432', 10),
           username: process.env.DB_USERNAME || 'cirta',
@@ -21,12 +29,7 @@ import { OrdersModule } from './orders/orders.module';
           database: process.env.DB_DATABASE || 'cirta',
           autoLoadEntities: true,
           synchronize: process.env.TYPEORM_SYNC === 'true',
-          ssl: isProd
-            ? {
-                rejectUnauthorized: false,
-                servername: process.env.DB_HOST,
-              }
-            : false,
+          ssl: isRemote ? { rejectUnauthorized: false } : false,
         };
       },
     }),
