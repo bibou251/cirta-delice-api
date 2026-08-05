@@ -10,6 +10,7 @@ import { OrdersModule } from './orders/orders.module';
     ConfigModule.forRoot(),
     TypeOrmModule.forRootAsync({
       useFactory: () => {
+        // 1. Priorité à l'URI complet (DATABASE_URL)
         if (process.env.DATABASE_URL) {
           return {
             type: 'postgres',
@@ -19,7 +20,12 @@ import { OrdersModule } from './orders/orders.module';
             ssl: { rejectUnauthorized: false },
           };
         }
-        const isRemote = process.env.NODE_ENV === 'production' || process.env.DB_HOST !== 'localhost';
+
+        // 2. Fallback sur les variables séparées
+        const isRemote =
+          process.env.NODE_ENV === 'production' ||
+          process.env.DB_HOST !== 'localhost';
+
         return {
           type: 'postgres',
           host: process.env.DB_HOST || 'localhost',
