@@ -4,13 +4,23 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { ProductsModule } from './products/products.module';
 import { OrdersModule } from './orders/orders.module';
+import { ArtisansModule } from './artisans/artisans.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    // ─── Configuration globale ───────────────────────────────────────────
+    ConfigModule.forRoot({
+      isGlobal: true,           // Accessible dans toute l'app sans réimporter
+      envFilePath: [
+        `.env.${process.env.NODE_ENV}`,  // .env.production en prod
+        '.env',                          // .env en fallback
+      ],
+    }),
+
+    // ─── Base de données (TypeORM) ────────────────────────────────────────
     TypeOrmModule.forRootAsync({
       useFactory: () => {
-        // 1. Priorité à l'URI complet (DATABASE_URL)
+        // 1. Priorité à l'URI complet (DATABASE_URL fourni par certains hébergeurs)
         if (process.env.DATABASE_URL) {
           return {
             type: 'postgres',
@@ -18,13 +28,16 @@ import { OrdersModule } from './orders/orders.module';
             autoLoadEntities: true,
             synchronize: process.env.TYPEORM_SYNC === 'true',
             ssl: { rejectUnauthorized: false },
+            // Retry automatique si la DB met du temps à démarrer
+            retryAttempts: 10,
+            retryDelay: 3000,
           };
         }
 
-        // 2. Fallback sur les variables séparées
+        // 2. Variables séparées (Supabase / local Docker)
         const isRemote =
           process.env.NODE_ENV === 'production' ||
-          process.env.DB_HOST !== 'localhost';
+          (process.env.DB_HOST !== 'localhost' && process.env.DB_HOST !== undefined);
 
         return {
           type: 'postgres',
@@ -36,12 +49,18 @@ import { OrdersModule } from './orders/orders.module';
           autoLoadEntities: true,
           synchronize: process.env.TYPEORM_SYNC === 'true',
           ssl: isRemote ? { rejectUnauthorized: false } : false,
+          retryAttempts: 10,
+          retryDelay: 3000,
+          logging: process.env.NODE_ENV !== 'production',
         };
       },
     }),
+
+    // ─── Modules métier ───────────────────────────────────────────────────
     AuthModule,
     ProductsModule,
     OrdersModule,
+    ArtisansModule,
   ],
 })
 export class AppModule {}

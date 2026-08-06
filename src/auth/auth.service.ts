@@ -20,30 +20,28 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  // ─────────────────────── REGISTER ───────────────────────
   async register(dto: RegisterDto): Promise<any> {
     const existing = await this.usersRepository.findOne({ where: { phone: dto.phone } });
-    if (existing) throw new ConflictException('Ce numéro est déjà utilisé');
+    if (existing) throw new ConflictException('Ce numero est deja utilise');
 
     const hashed = await bcrypt.hash(dto.password, 12);
-    const user = this.usersRepository.create({
-      phone: dto.phone,
-      password: hashed,
-      name: dto.name || null,
-      email: dto.email || null,
-      role: UserRole.CLIENT,
-    });
+    const user = new User();
+    user.phone = dto.phone;
+    user.password = hashed;
+    user.name = dto.name ?? null;
+    user.email = dto.email ?? null;
+    user.role = UserRole.CLIENT;
+
     await this.usersRepository.save(user);
     return this.generateToken(user);
   }
 
-  // ─────────────────────── LOGIN ───────────────────────
   async login(dto: LoginDto): Promise<any> {
     const user = await this.usersRepository.findOne({ where: { phone: dto.phone } });
     if (!user) throw new UnauthorizedException('Identifiants invalides');
 
     if (!user.isActive) {
-      throw new ForbiddenException('Compte désactivé. Contactez l\'administrateur.');
+      throw new ForbiddenException('Compte desactive. Contactez l administrateur.');
     }
 
     const valid = await bcrypt.compare(dto.password, user.password);
@@ -52,23 +50,20 @@ export class AuthService {
     return this.generateToken(user);
   }
 
-  // ─────────────────────── GET PROFILE ───────────────────────
   async getProfile(userId: number): Promise<Partial<User>> {
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('Utilisateur introuvable');
-
     const { password, ...profile } = user;
     return profile;
   }
 
-  // ─────────────────────── UPDATE PROFILE ───────────────────────
   async updateProfile(userId: number, dto: UpdateProfileDto): Promise<Partial<User>> {
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('Utilisateur introuvable');
 
     if (dto.email && dto.email !== user.email) {
       const emailExists = await this.usersRepository.findOne({ where: { email: dto.email } });
-      if (emailExists) throw new ConflictException('Cet email est déjà utilisé');
+      if (emailExists) throw new ConflictException('Cet email est deja utilise');
     }
 
     if (dto.name !== undefined) user.name = dto.name;
@@ -79,15 +74,11 @@ export class AuthService {
     return profile;
   }
 
-  // ─────────────────────── ADMIN: LIST USERS ───────────────────────
   async getAllUsers(): Promise<Partial<User>[]> {
-    const users = await this.usersRepository.find({
-      order: { createdAt: 'DESC' },
-    });
+    const users = await this.usersRepository.find({ order: { createdAt: 'DESC' } });
     return users.map(({ password, ...u }) => u);
   }
 
-  // ─────────────────────── ADMIN: TOGGLE ACTIVE ───────────────────────
   async toggleUserActive(userId: number): Promise<Partial<User>> {
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('Utilisateur introuvable');
@@ -97,7 +88,6 @@ export class AuthService {
     return profile;
   }
 
-  // ─────────────────────── ADMIN: UPDATE ROLE ───────────────────────
   async updateUserRole(userId: number, dto: UpdateRoleDto): Promise<Partial<User>> {
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('Utilisateur introuvable');
@@ -107,7 +97,6 @@ export class AuthService {
     return profile;
   }
 
-  // ─────────────────────── TOKEN GENERATION ───────────────────────
   private generateToken(user: User) {
     const payload = {
       sub: user.id,

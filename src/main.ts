@@ -2,28 +2,47 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // ─── CORS ───
   const corsOrigin = process.env.CORS_ORIGIN || '*';
-  app.enableCors({ origin: corsOrigin });
+  app.enableCors({
+    origin: corsOrigin,
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  });
+
+  // ─── Global prefix ───
+  app.setGlobalPrefix('api', { exclude: ['health'] });
 
   // ─── Validation globale ───
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,           // Supprime les propriétés non déclarées dans les DTOs
-      forbidNonWhitelisted: false, // Ne bloque pas (mode permissif pour compatibilité)
-      transform: true,           // Transforme automatiquement les types (string → number)
+      whitelist: true,
+      forbidNonWhitelisted: false,
+      transform: true,
     }),
   );
 
-  // ─── Swagger API Documentation ───
+  // ─── Health check (Render, load balancers, uptime monitors) ───
+  app.use('/health', (_req: any, res: any) => {
+    res.status(200).json({
+      status: 'ok',
+      service: 'cirta-delice-api',
+      timestamp: new Date().toISOString(),
+      uptime: Math.round(process.uptime()),
+    });
+  });
+
+  // ─── Swagger API Documentation (non-production uniquement) ───
   if (process.env.NODE_ENV !== 'production') {
     const config = new DocumentBuilder()
       .setTitle('Cirta Délice API')
-      .setDescription('API Backend pour l\'application Cirta — Marketplace de saveurs constantinoises')
+      .setDescription('API Backend — Marketplace de saveurs constantinoises')
       .setVersion('1.0')
       .addBearerAuth()
       .build();
@@ -31,11 +50,12 @@ async function bootstrap() {
     SwaggerModule.setup('api/docs', app, document);
   }
 
-  const port = process.env.PORT || 3000;
-  await app.listen(port);
+  const port = parseInt(process.env.PORT || '3000', 10);
+  await app.listen(port, '0.0.0.0');
   console.log(`🚀 Backend Cirta démarré sur le port ${port}`);
+  console.log(`🌍 Environnement: ${process.env.NODE_ENV || 'development'}`);
   if (process.env.NODE_ENV !== 'production') {
-    console.log(`📖 Swagger disponible sur http://localhost:${port}/api/docs`);
+    console.log(`📖 Swagger: http://localhost:${port}/api/docs`);
   }
 }
 bootstrap();

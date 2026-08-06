@@ -21,7 +21,7 @@ import { UserRole } from '../auth/user.entity';
 export class ProductsController {
   constructor(private service: ProductsService) {}
 
-  // ─────────────────────── PUBLIC ROUTES ───────────────────────
+  // ─── PUBLIC ROUTES ──────────────────────────────────────────────────
 
   @Get()
   getAll(
@@ -31,12 +31,7 @@ export class ProductsController {
     return this.service.findAll(category, search);
   }
 
-  @Get(':id')
-  getOne(@Param('id', ParseIntPipe) id: number) {
-    return this.service.findOne(id);
-  }
-
-  // ─────────────────────── ADMIN ROUTES ───────────────────────
+  // ─── ADMIN / ARTISAN ROUTES (statiques avant paramétrées) ──────────
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -46,14 +41,27 @@ export class ProductsController {
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(UserRole.ARTISAN, UserRole.ADMIN)
+  @Get('artisan/:artisanId')
+  getByArtisan(@Param('artisanId') artisanId: string) {
+    return this.service.findByArtisan(artisanId);
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.ARTISAN)
   @Post()
   create(@Body() dto: CreateProductDto, @Request() req: any) {
-    // Un artisan peut seulement créer pour lui-même
     if (req.user.role === UserRole.ARTISAN) {
       dto.artisanId = req.user.userId.toString();
     }
     return this.service.create(dto);
+  }
+
+  // ─── ROUTES PARAMÉTRÉES (après les routes statiques) ───────────────
+
+  @Get(':id')
+  getOne(@Param('id', ParseIntPipe) id: number) {
+    return this.service.findOne(id);
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -75,14 +83,5 @@ export class ProductsController {
   @Patch(':id/toggle')
   toggleAvailability(@Param('id', ParseIntPipe) id: number) {
     return this.service.toggleAvailability(id);
-  }
-
-  // ─────────────────────── ARTISAN ROUTES ───────────────────────
-
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.ARTISAN, UserRole.ADMIN)
-  @Get('artisan/:artisanId')
-  getByArtisan(@Param('artisanId') artisanId: string) {
-    return this.service.findByArtisan(artisanId);
   }
 }
