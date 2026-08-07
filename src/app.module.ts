@@ -1,26 +1,35 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
+
 import { AuthModule } from './auth/auth.module';
 import { ProductsModule } from './products/products.module';
 import { OrdersModule } from './orders/orders.module';
 import { ArtisansModule } from './artisans/artisans.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
     // ─── Configuration globale ───────────────────────────────────────────
     ConfigModule.forRoot({
-      isGlobal: true,           // Accessible dans toute l'app sans réimporter
+      isGlobal: true,
       envFilePath: [
-        `.env.${process.env.NODE_ENV}`,  // .env.production en prod
-        '.env',                          // .env en fallback
+        `.env.${process.env.NODE_ENV}`,
+        '.env',
       ],
+    }),
+
+    // ─── Serveur Fichiers Statiques (Uploads / Photos HD Products) ──────────
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'uploads'),
+      serveRoot: '/uploads',
     }),
 
     // ─── Base de données (TypeORM) ────────────────────────────────────────
     TypeOrmModule.forRootAsync({
       useFactory: () => {
-        // 1. Priorité à l'URI complet (DATABASE_URL fourni par certains hébergeurs)
         if (process.env.DATABASE_URL) {
           return {
             type: 'postgres',
@@ -28,13 +37,11 @@ import { ArtisansModule } from './artisans/artisans.module';
             autoLoadEntities: true,
             synchronize: process.env.TYPEORM_SYNC === 'true',
             ssl: { rejectUnauthorized: false },
-            // Retry automatique si la DB met du temps à démarrer
             retryAttempts: 10,
             retryDelay: 3000,
           };
         }
 
-        // 2. Variables séparées (Supabase / local Docker)
         const isRemote =
           process.env.NODE_ENV === 'production' ||
           (process.env.DB_HOST !== 'localhost' && process.env.DB_HOST !== undefined);
@@ -61,6 +68,7 @@ import { ArtisansModule } from './artisans/artisans.module';
     ProductsModule,
     OrdersModule,
     ArtisansModule,
+    UploadModule,
   ],
 })
 export class AppModule {}

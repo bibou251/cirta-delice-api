@@ -17,7 +17,7 @@ async function bootstrap() {
   });
 
   // ─── Global prefix ───
-  app.setGlobalPrefix('api', { exclude: ['health'] });
+  app.setGlobalPrefix('api', { exclude: ['health', 'uploads/(.*)'] });
 
   // ─── Validation globale ───
   app.useGlobalPipes(
