@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { ProductsModule } from './products/products.module';
 import { OrdersModule } from './orders/orders.module';
 import { ArtisansModule } from './artisans/artisans.module';
+import { KycModule } from './kyc/kyc.module';
 import { UploadModule } from './upload/upload.module';
 import { AdminModule } from './admin/admin.module';
 
@@ -70,6 +71,7 @@ import { AdminModule } from './admin/admin.module';
     ProductsModule,
     OrdersModule,
     ArtisansModule,
+    KycModule,
     UploadModule,
     AdminModule,
   ],
