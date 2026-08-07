@@ -9,9 +9,11 @@ import { ProductsModule } from './products/products.module';
 import { OrdersModule } from './orders/orders.module';
 import { ArtisansModule } from './artisans/artisans.module';
 import { UploadModule } from './upload/upload.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
+
     // ─── Configuration globale ───────────────────────────────────────────
     ConfigModule.forRoot({
       isGlobal: true,
@@ -69,6 +71,7 @@ import { UploadModule } from './upload/upload.module';
     OrdersModule,
     ArtisansModule,
     UploadModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

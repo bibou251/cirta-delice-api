@@ -32,8 +32,12 @@ export class User {
   @Column({ default: false })
   isVerified: boolean;
 
+  @Column({ type: 'varchar', default: 'none' })
+  kycLevel: string;
+
   @Column({ default: true })
   isActive: boolean;
+
 
   @CreateDateColumn()
   createdAt: Date;
